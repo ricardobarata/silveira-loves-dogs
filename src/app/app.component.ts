@@ -1,12 +1,13 @@
 import { HttpErrorResponse } from "@angular/common/http";
 import { Component, OnDestroy, OnInit } from "@angular/core";
+import { Actions, ofType } from "@ngrx/effects";
 import { select, Store } from "@ngrx/store";
 import { Subscription } from "rxjs";
+import { map } from "rxjs/operators";
 import { DogsData } from "./app.models";
-import { loadDog } from "./store/actions/app.actions";
+import { loadDog, loadDogSuccess } from "./store/actions/app.actions";
 import {
   AppState,
-  selectDog,
   selectDogError,
   selectDogsLoading as selectDogLoading
 } from "./store/selectors/app.selectors";
@@ -25,7 +26,7 @@ export class AppComponent implements OnInit, OnDestroy {
   private loadDogSubscription: Subscription;
   private loadDogErrorSubscription: Subscription;
 
-  constructor(private store: Store<AppState>) {}
+  constructor(private store: Store<AppState>, private actions$: Actions) {}
 
   ngOnInit(): void {
     this.loadDogLoadingSubscription = this.store
@@ -33,11 +34,28 @@ export class AppComponent implements OnInit, OnDestroy {
       .subscribe((loading: Boolean) => {
         this.loading = loading;
       });
-    this.loadDogSubscription = this.store
-      .pipe(select(selectDog))
+
+    // Method 1: Subscribe to the store
+    // -----------------------------------
+    // this.loadDogSubscription = this.store
+    //   .pipe(select(selectDog))
+    //   .subscribe((data: DogsData) => {
+    //     this.data = data;
+    //   });
+    // END Method 1
+
+    // Method 2: Subscribe to the success action
+    // -----------------------------------
+    this.loadDogSubscription = this.actions$
+      .pipe(
+        ofType(loadDogSuccess),
+        map(action => action.data)
+      )
       .subscribe((data: DogsData) => {
         this.data = data;
       });
+    // END Method 2
+
     this.loadDogErrorSubscription = this.store
       .pipe(select(selectDogError))
       .subscribe((error: HttpErrorResponse) => {
